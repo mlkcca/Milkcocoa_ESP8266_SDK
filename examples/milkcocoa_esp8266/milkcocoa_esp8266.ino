@@ -11,6 +11,7 @@
 
 #define MILKCOCOA_APP_ID      "...YOUR_MILKCOCOA_APP_ID..."
 #define MILKCOCOA_DATASTORE   "esp8266"
+#define MILKCOCOA_API_KEY     "...YOUR_MILKCOCOA_API_KEY..."
 
 /************* Milkcocoa Setup (you don't need to change this!) ******************/
 
@@ -24,7 +25,7 @@ WiFiClient client;
 const char MQTT_SERVER[] PROGMEM    = MILKCOCOA_APP_ID ".mlkcca.com";
 const char MQTT_CLIENTID[] PROGMEM  = __TIME__ MILKCOCOA_APP_ID;
 
-Milkcocoa milkcocoa = Milkcocoa(&client, MQTT_SERVER, MILKCOCOA_SERVERPORT, MILKCOCOA_APP_ID, MQTT_CLIENTID);
+Milkcocoa *milkcocoa = Milkcocoa::createWithApiKey(&client, MQTT_SERVER, MILKCOCOA_SERVERPORT, MILKCOCOA_APP_ID, MQTT_CLIENTID, MILKCOCOA_API_KEY);
 
 void onpush(DataElement *elem) {
   Serial.println("onpush");
@@ -51,20 +52,20 @@ void setupWiFi() {
 void setup() {
   Serial.begin(115200);
   delay(10);
+
   Serial.println(F("Milkcocoa SDK demo"));
 
   setupWiFi();
 
-  Serial.println( milkcocoa.on(MILKCOCOA_DATASTORE, "push", onpush) );
+  Serial.println( milkcocoa->on(MILKCOCOA_DATASTORE, MILKCOCOA_EV_PUSH, onpush) );
 };
 
 void loop() {
-  milkcocoa.loop();
+  milkcocoa->loop();
 
   DataElement elem = DataElement();
   elem.setValue("v", 1);
 
-  milkcocoa.push(MILKCOCOA_DATASTORE, &elem);
+  milkcocoa->push(MILKCOCOA_DATASTORE, &elem);
   delay(7000);
 };
-

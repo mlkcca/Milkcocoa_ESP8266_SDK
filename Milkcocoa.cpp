@@ -27,48 +27,44 @@ SOFTWARE.
 
 
 DataElement::DataElement() {
-  params = aJson.createObject();
   paJsonObj = aJson.createObject();
-  aJson.addItemToObject(paJsonObj, "params", params);
 }
 
 DataElement::DataElement(char *json_string) {
   paJsonObj = aJson.parse(json_string);
-  params = aJson.getObjectItem(paJsonObj, "params");
 }
 
 DataElement::~DataElement() {
   aJson.deleteItem(paJsonObj);
   paJsonObj = NULL;
-  params = NULL;
 }
 
 void DataElement::setValue(const char *key, const char *v) {
-  aJson.addStringToObject(params, key, v);
+  aJson.addStringToObject(paJsonObj, key, v);
 }
 
 void DataElement::setValue(const char *key, int v) {
-  aJson.addNumberToObject(params, key, v);
+  aJson.addNumberToObject(paJsonObj, key, v);
 }
 
 void DataElement::setValue(const char *key, double v) {
-  aJson.addNumberToObject(params, key, v);
+  aJson.addNumberToObject(paJsonObj, key, v);
 }
 
 char *DataElement::getString(const char *key) {
-  aJsonObject* obj = aJson.getObjectItem(params, key);
+  aJsonObject* obj = aJson.getObjectItem(paJsonObj, key);
   return obj->valuestring;
 }
 
 int DataElement::getInt(const char *key) {
-  aJsonObject* obj = aJson.getObjectItem(params, key);
+  aJsonObject* obj = aJson.getObjectItem(paJsonObj, key);
   if(obj == NULL)
     Serial.println("obj is NULL");
   return obj->valueint;
 }
 
 float DataElement::getFloat(const char *key) {
-  aJsonObject* obj = aJson.getObjectItem(params, key);
+  aJsonObject* obj = aJson.getObjectItem(paJsonObj, key);
   return obj->valuefloat;
 }
 
@@ -98,10 +94,10 @@ Milkcocoa::Milkcocoa(Client *client, const char *host, uint16_t port, const char
 
 }
 
-Milkcocoa* Milkcocoa::createWithApiKey(Client *client, const char *host, uint16_t port, const char *app_id, const char *client_id, const char *key, const char *secret)
+Milkcocoa* Milkcocoa::createWithApiKey(Client *client, const char *host, uint16_t port, const char *app_id, const char *client_id, const char *key)
 {
   char session[60];
-  sprintf(session, "k%s:%s", key, secret);
+  sprintf(session, "k%s", key);
   return new Milkcocoa(client, host, port, app_id, client_id, session);
 }
 
@@ -138,7 +134,7 @@ bool Milkcocoa::push(const char *path, DataElement *pdataelement) {
   char topic[100];
   bool ret;
   char *send_array;
-  sprintf(topic, "%s/%s/push", app_id, path);
+  sprintf(topic, "%s/%s/_p", app_id, path);
   Adafruit_MQTT_Publish pushPublisher = Adafruit_MQTT_Publish(mqtt, topic);
   send_array = pdataelement->toCharArray();
   ret = pushPublisher.publish(send_array);
@@ -150,7 +146,7 @@ bool Milkcocoa::send(const char *path, DataElement *pdataelement) {
   char topic[100];
   bool ret;
   char *send_array;
-  sprintf(topic, "%s/%s/send", app_id, path);
+  sprintf(topic, "%s/%s/_s", app_id, path);
   Adafruit_MQTT_Publish pushPublisher = Adafruit_MQTT_Publish(mqtt, topic);
   send_array = pdataelement->toCharArray();
   ret = pushPublisher.publish(send_array);
@@ -175,9 +171,13 @@ bool Milkcocoa::loop(uint16_t timeout) {
   return true;
 }
 
-bool Milkcocoa::on(const char *path, const char *event, GeneralFunction cb) {
+bool Milkcocoa::on(const char *path, const int event, GeneralFunction cb) {
   MilkcocoaSubscriber *sub = new MilkcocoaSubscriber(cb);
-  sprintf(sub->topic, "%s/%s/%s", app_id, path, event);
+  if(event == 1) {
+    sprintf(sub->topic, "%s/%s/_p", app_id, path);
+  }else if(event == 3) {
+    sprintf(sub->topic, "%s/%s/_s", app_id, path);
+  }
 
   uint8_t i;
   Adafruit_MQTT_Subscribe *mqtt_sub = new Adafruit_MQTT_Subscribe(mqtt, sub->topic);
